@@ -16,17 +16,33 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:3000',
       'https://eventmanagementkuldeep.netlify.app',
-      'https://event-mangement-backend-219j.onrender.com'
+      /--eventmanagementkuldeep\.netlify\.app$/,  // This will allow all Netlify deploy previews
+      /eventmanagementkuldeep\.netlify\.app$/     // This will allow the main site
     ];
 
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    // Check if origin matches any of our allowed origins
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      if (allowedOrigin instanceof RegExp) {
+        return allowedOrigin.test(origin);
+      }
+      return allowedOrigin === origin;
+    });
+
+    if (isAllowed) {
       callback(null, true);
     } else {
+      console.log('Blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   credentials: true,
   preflightContinue: false,
   optionsSuccessStatus: 204
