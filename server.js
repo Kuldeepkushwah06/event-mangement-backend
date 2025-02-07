@@ -9,48 +9,36 @@ const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: [
-      'http://localhost:3000',
-      'https://eventmanagementkuldeep.netlify.app',
-      /\.netlify\.app$/
-    ],
-    methods: ["GET", "POST"],
-    credentials: true
-  }
-});
 
-// Middleware
-app.use(cors({
-  origin: function(origin, callback) {
+// CORS Configuration
+const corsOptions = {
+  origin: function (origin, callback) {
     const allowedOrigins = [
       'http://localhost:3000',
       'https://eventmanagementkuldeep.netlify.app',
-      /\.netlify\.app$/  // This will allow all Netlify preview deployments
+      'https://event-mangement-backend-219j.onrender.com'
     ];
-    
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Check if the origin is allowed
-    const isAllowed = allowedOrigins.some(allowedOrigin => {
-      if (allowedOrigin instanceof RegExp) {
-        return allowedOrigin.test(origin);
-      }
-      return allowedOrigin === origin;
-    });
-    
-    if (isAllowed) {
+
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+
+// Apply CORS to all routes
+app.use(cors(corsOptions));
+
+// Handle OPTIONS preflight requests
+app.options('*', cors(corsOptions));
+
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -97,6 +85,8 @@ mongoose.connection.on('connected', () => {
 connectWithRetry();
 
 // Socket.IO connection handling
+const io = socketIo(server, { cors: corsOptions });
+
 io.on('connection', (socket) => {
   console.log('New client connected');
   
